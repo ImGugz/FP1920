@@ -1,0 +1,264 @@
+UNIDADE = 2
+PAREDE = 1
+CORREDOR = 0
+DIMENSAO_MINIMA = (3,3) # (colunas, linhas)
+
+def eh_labirinto(def_labirinto):
+  if not isinstance(def_labirinto, tuple):
+    return False
+
+  dim_horizontal = len(def_labirinto)
+  
+  if dim_horizontal < DIMENSAO_MINIMA[0]:
+    return False
+
+  for i in range(dim_horizontal):
+    coluna = def_labirinto[i]
+
+    if not isinstance(coluna, tuple):
+      return False
+
+    dim_vertical = len(coluna)
+  
+    if dim_vertical < DIMENSAO_MINIMA[1]:
+      return False
+
+    if dim_vertical != len(def_labirinto[0]):
+      return False
+
+    # primeira coluna parede?
+    if i == 0:
+      if coluna != (1,)*dim_vertical:
+        return False
+    # ultima coluna parede?
+    elif i == dim_horizontal - 1:
+      if coluna != (1,)*dim_vertical:
+        return False
+    else:
+      # parede nos extremos?
+      if coluna[0] != PAREDE or coluna[dim_vertical-1] != PAREDE:
+        return False
+
+    for posicao in coluna:
+      if not isinstance(posicao, int):
+        return False
+
+      if posicao != PAREDE and posicao != CORREDOR:
+        return False
+
+  return True
+
+def eh_posicao(posicao):
+  if not isinstance(posicao, tuple):
+    return False
+
+  if len(posicao) != 2:
+    return False
+
+  (x, y) = posicao
+
+  if not isinstance(x, int) or not isinstance(y, int) or x < 0 or y < 0:
+    return False
+
+  return True
+
+def eh_conj_posicoes(posicoes):
+  if not isinstance(posicoes, tuple):
+    return False
+
+  for i in range(len(posicoes)):
+    posicao = posicoes[i]
+
+    # se ponto invalido
+    if not eh_posicao(posicao):
+      return False
+
+    for j in range(i+1, len(posicoes)):
+      if posicao == posicoes[j]:
+        return False
+
+  return True
+
+def tamanho_labirinto(labirinto):
+  if not eh_labirinto(labirinto):
+    raise ValueError('tamanho_labirinto: argumento invalido')
+
+  return (len(labirinto), len(labirinto[0]))
+
+def eh_mapa_valido(labirinto, conj_posicoes):
+  if not eh_labirinto(labirinto):
+    raise ValueError('eh_mapa_valido: algum dos argumentos e invalido')
+
+  if not eh_conj_posicoes(conj_posicoes):
+    raise ValueError('eh_mapa_valido: algum dos argumentos e invalido')
+
+  (dim_horizontal, dim_vertical) = tamanho_labirinto(labirinto)
+
+  for posicao in conj_posicoes:
+    (x, y) = posicao
+
+    if x > dim_horizontal - 1 or y > dim_vertical - 1 or labirinto[x][y] == PAREDE:
+      return False
+
+  return True
+
+def eh_posicao_livre(labirinto, conj_posicoes, posicao):
+  try:
+    if not eh_mapa_valido(labirinto, conj_posicoes):
+      raise
+
+    if not eh_posicao(posicao):
+      raise
+
+    (x, y) = posicao
+
+    (dim_horizontal, dim_vertical) = tamanho_labirinto(labirinto)
+
+    if x > dim_horizontal - 1 or y > dim_vertical - 1:
+      raise
+
+    return labirinto[x][y] == CORREDOR and posicao not in conj_posicoes
+  except:
+    raise ValueError('eh_posicao_livre: algum dos argumentos e invalido') from None
+
+def posicoes_adjacentes(posicao):
+  if not eh_posicao(posicao):
+    raise ValueError('posicoes_adjacentes: argumento invalido')
+
+  (x, y) = posicao
+
+  up = (x, y - 1)
+  left = (x - 1, y)
+  down = (x, y + 1)
+  right = (x + 1, y)
+
+  # 0,0
+  if x == 0 and y == 0:
+    return (right, down)
+  # primeira coluna
+  elif x == 0:
+    return (up, right, down)
+  # primeira linha
+  elif y == 0:
+    return (left, right, down)
+
+  return (up, left, right, down)
+
+def mapa_str(labirinto, conj_posicoes):
+  try:
+    if not eh_mapa_valido(labirinto, conj_posicoes):
+      raise
+
+    resultado = ""
+
+    (dim_horizontal, dim_vertical) = tamanho_labirinto(labirinto)
+
+    labirinto_com_unidades = []
+
+    # converter labirinto para lista
+    for coluna in labirinto:
+      labirinto_com_unidades.append(list(coluna))
+    
+    # escrever unidades do conj_posicoes
+    for posicao_unidade in conj_posicoes:
+      (x,y) = posicao_unidade
+
+      labirinto_com_unidades[x][y] = UNIDADE
+
+    for y in range(dim_vertical):
+      for x in range(dim_horizontal):
+        posicao = labirinto_com_unidades[x][y]
+
+        if posicao == PAREDE:
+          resultado += "#"
+        elif posicao == CORREDOR:
+          resultado += "."
+        elif posicao == UNIDADE:
+          resultado += "O"
+
+      if y != dim_vertical - 1:
+        resultado += "\n"
+
+    return resultado
+  except:
+    raise ValueError('mapa_str: algum dos argumentos e invalido') from None
+
+def obter_objetivos(labirinto, conj_posicoes, posicao_inicial):
+  try:
+    if not eh_mapa_valido(labirinto, conj_posicoes):
+      raise 
+    if not eh_conj_posicoes(conj_posicoes):
+      raise 
+    if posicao_inicial not in conj_posicoes or not eh_posicao(posicao_inicial):
+      raise 
+
+    (dim_horizontal, dim_vertical) = tamanho_labirinto(labirinto)
+
+    resultado = ()
+
+    for unidade in conj_posicoes:
+      if unidade != posicao_inicial:
+        pos_adjs = posicoes_adjacentes(unidade)
+    
+        for posicao_obj in pos_adjs:
+          po = posicao_obj
+
+          if eh_posicao_livre(labirinto,conj_posicoes,po) and po not in resultado:
+            resultado = resultado + (po,)
+
+    return resultado
+  except:
+    raise ValueError('obter_objetivos: algum dos argumentos e invalido')
+
+def obter_caminho(labirinto, conj_posicoes, posicao_inicial):
+  try:
+    objectivos_possiveis = obter_objetivos(labirinto, conj_posicoes, posicao_inicial)
+
+    posicoes_adjacentes_inicial = posicoes_adjacentes(posicao_inicial)
+
+    for posicao_adj in posicoes_adjacentes_inicial:
+      if posicao_adj in conj_posicoes:
+        return (posicao_inicial, posicao_adj)
+
+    fila_exploracao = [posicao_inicial, []]
+    posicoes_visitadas = []
+
+    while fila_exploracao:
+      posicao_atual = fila_exploracao.pop(0)
+      caminho_atual = fila_exploracao.pop(0)
+
+      if posicao_atual not in posicoes_visitadas:
+        posicoes_visitadas.append(posicao_atual)
+
+        caminho_atual = caminho_atual + [posicao_atual]
+
+        if posicao_atual in objectivos_possiveis:
+          return tuple(caminho_atual)
+        else:
+          for posicao_adjacente in posicoes_adjacentes(posicao_atual):
+            if eh_posicao_livre(labirinto, conj_posicoes, posicao_adjacente):
+              fila_exploracao.append(posicao_adjacente)
+              fila_exploracao.append(caminho_atual)
+
+    return ()
+  except:
+    raise ValueError('obter_caminho: algum dos argumentos e invalido') from None
+
+def mover_unidade(labirinto, conj_posicoes, posicao_inicial):
+  try:
+    caminho_min = obter_caminho(labirinto, conj_posicoes, posicao_inicial)
+
+    proxima_posicao = caminho_min[1]
+
+    if proxima_posicao in conj_posicoes:
+      return conj_posicoes
+
+    conj_posicoes_lst = list(conj_posicoes)
+
+    for i in range(len(conj_posicoes_lst)):
+      if conj_posicoes_lst[i] == posicao_inicial:
+        conj_posicoes_lst[i] = proxima_posicao
+
+    return tuple(conj_posicoes_lst)
+  except:
+    raise ValueError('mover_unidade: algum dos argumentos e invalido') from None

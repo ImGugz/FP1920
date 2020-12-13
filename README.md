@@ -3,7 +3,7 @@
 ## Context
 2 project exercises assigned from FP (Foundations of Programming) in the first semester of 2019/2020 (IST).
 
-## Features
+## Goal
 ### ex1
 Develop a Python program to simulate a unit movement through a 2D maze containing obstacles and other units.
 
